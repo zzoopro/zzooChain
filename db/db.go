@@ -30,6 +30,10 @@ func DB() *bolt.DB {
 	return db
 }
 
+func Close() {
+	DB().Close()
+}
+
 func SaveBlock(hash string, data []byte) {
 	fmt.Printf("Saving block: %s\n data: %b", hash, data)
 	err := DB().Update(func(tx *bolt.Tx) error {
@@ -54,6 +58,16 @@ func ChainData() []byte {
 	DB().View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(DATA_BUCKET))
 		data = bucket.Get([]byte(DATA_BUCKET_KEY))
+		return nil
+	})
+	return data
+}
+
+func Block(hash string) []byte {
+	var data []byte
+	DB().View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BLOCKS_BUCKET))
+		data = bucket.Get([]byte(hash))
 		return nil
 	})
 	return data

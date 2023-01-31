@@ -1,8 +1,6 @@
 package blockchain
 
 import (
-	"bytes"
-	"encoding/gob"
 	"sync"
 
 	"github.com/zzoopro/zzoocoin/db"
@@ -30,13 +28,28 @@ func Blockchain() *blockchain {
 				b.restore(chainData)
 			}
 		})
-	}
+	}	
 	return b
 }
 
 func (b *blockchain) restore(data []byte) {
-	decoder := gob.NewDecoder(bytes.NewReader(data))
-	utils.HandleErr(decoder.Decode(b))
+	utils.FromBytes(b, data)
+}
+
+func (b *blockchain) Blocks() []*Block {
+	var blocks []*Block
+	hashCursor := b.NewestHash
+	for {
+		block, err := FindBlock(hashCursor)
+		utils.HandleErr(err)
+		blocks = append(blocks, block)
+		if block.PrevHash != "" {
+			hashCursor = block.PrevHash
+		} else {
+			break
+		}
+	}
+	return blocks
 }
 
 func (b *blockchain) AddBlock(data string) {

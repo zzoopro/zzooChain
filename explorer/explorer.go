@@ -22,7 +22,7 @@ var (
 )
 
 func handleHome(wr http.ResponseWriter, r *http.Request) {
-	data := homeData{"Zzoo Coin", blockchain.GetBlockchain().AllBlocks()}
+	data := homeData{"Zzoo Coin", nil}
 	templates.ExecuteTemplate(wr, "home", data)
 }
 
@@ -33,7 +33,7 @@ func handleAdd(wr http.ResponseWriter, r *http.Request) {
 	case "POST":
 		r.ParseForm()
 		data := r.Form.Get("blockData")
-		blockchain.GetBlockchain().AddBlock(data)
+		blockchain.Blockchain().AddBlock(data)
 		http.Redirect(wr, r, "/", http.StatusPermanentRedirect)
 	}	
 }

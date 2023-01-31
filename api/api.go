@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/zzoopro/zzoocoin/blockchain"
@@ -55,7 +54,7 @@ func documentation(rw http.ResponseWriter, r *http.Request) {
 			Payload: "data:string",
 		},
 		{
-			URL: urlText("/blocks/{height}"),
+			URL: urlText("/blocks/{hash}"),
 			Method: "GET",
 			Description: "See a block",			
 		},
@@ -66,20 +65,19 @@ func documentation(rw http.ResponseWriter, r *http.Request) {
 func handleBlocks(rw http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":		
-		json.NewEncoder(rw).Encode(blockchain.GetBlockchain().AllBlocks())
+		json.NewEncoder(rw).Encode(blockchain.Blockchain().Blocks())
 	case "POST":
 		var body addBlockBody
 		utils.HandleErr(json.NewDecoder(r.Body).Decode(&body))
-		blockchain.GetBlockchain().AddBlock(body.Data)
+		blockchain.Blockchain().AddBlock(body.Data)
 		rw.WriteHeader(http.StatusCreated)
 	}
 }
 
 func handleBlock(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	height, err := strconv.Atoi(vars["height"])
-	utils.HandleErr(err)
-	block, err := blockchain.GetBlockchain().FindBlock(height)
+	hash := vars["hash"]	
+	block, err := blockchain.FindBlock(hash)
 	encoder := json.NewEncoder(rw)	
 	if err == blockchain.ErrNotFound {
 		encoder.Encode(errorResponse{fmt.Sprint(err)})
@@ -102,7 +100,7 @@ func Start(portNum int){
 	router.Use(contentTypeMiddleware)
 	router.HandleFunc("/", documentation).Methods("GET")
 	router.HandleFunc("/blocks", handleBlocks).Methods("GET", "POST")
-	router.HandleFunc("/blocks/{height:[0-9]+}", handleBlock).Methods("GET")
+	router.HandleFunc("/blocks/{hash:[a-f0-9]+}", handleBlock).Methods("GET")
 
 	fmt.Printf("Server listening on http://localhost%d", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), router))	

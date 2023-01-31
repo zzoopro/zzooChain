@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/zzoopro/zzoocoin/api"
 	"github.com/zzoopro/zzoocoin/explorer"
@@ -15,7 +16,7 @@ func usage() {
 	fmt.Printf("Please use the following flags:\n")
 	fmt.Printf("-mode=html :  What do you want?\n")
 	fmt.Printf("-port=4000 :  Set port of the server.\n")	
-	os.Exit(0)
+	runtime.Goexit()
 }
 
 func Start() {

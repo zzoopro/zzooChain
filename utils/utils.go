@@ -14,12 +14,9 @@ func HandleErr(err error) {
 	}
 }
 
-func Hash(payloads... string) string {
-	text := ""	
-	for _,payload := range payloads {
-		text = text + payload
-	}	
-	hash := fmt.Sprintf("%x",sha256.Sum256([]byte(text)))	
+func Hash(data interface{}) string {
+	dataAsString := fmt.Sprint(data)
+	hash := fmt.Sprintf("%x",sha256.Sum256([]byte(dataAsString)))	
 	return hash
 }
 
@@ -28,4 +25,9 @@ func ToBytes(i interface{}) []byte {
 	encoder := gob.NewEncoder(&aBuffer)
 	HandleErr(encoder.Encode(i))
 	return aBuffer.Bytes()
+}
+
+func FromBytes(i interface{}, data []byte) {
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	HandleErr(decoder.Decode(i))
 }

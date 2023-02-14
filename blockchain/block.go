@@ -1,10 +1,10 @@
 package blockchain
 
 import (
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/zzoopro/zzoocoin/db"
 	"github.com/zzoopro/zzoocoin/utils"
@@ -17,17 +17,16 @@ type Block struct {
 	Height 		int 	`json:"height"`
 	Difficulty 	int 	`json:"difficulty"`
 	Nonce 		int 	`json:"nonce"`
+	Timestamp   int     `json:"timestamp"`
 }
 
 var (
-	ErrNotFound = errors.New("Block not found.")
-	difficulty = 2
+	ErrNotFound = errors.New("Block not found.")	
 )
 
 func (b *Block) persist() {
 	db.SaveBlock(b.Hash, utils.ToBytes(b))
 }
-
 
 func createBlock(data string, prevHash string, height int ) *Block {
 	block := &Block{
@@ -35,7 +34,7 @@ func createBlock(data string, prevHash string, height int ) *Block {
 		Hash: "",
 		PrevHash: prevHash,
 		Height: height,
-		Difficulty: difficulty,
+		Difficulty: Blockchain().difficulty(),
 		Nonce: 0,
 	}	
 	block.mine()
@@ -58,10 +57,11 @@ func (b *Block) restore(data []byte) {
 }
 
 func (b *Block) mine() {
-	target := strings.Repeat("0", b.Difficulty)
+	target := strings.Repeat("0", b.Difficulty)	
 	for {
-		blockAsString := fmt.Sprint(b)
-		hash := fmt.Sprintf("%x", sha256.Sum256([]byte(blockAsString)))		
+		b.Timestamp = int(time.Now().Unix())
+		hash := utils.Hash(b)
+		fmt.Printf("Target: %s\nHash: %s\nNonce: %d\n\n\n", target, hash, b.Nonce)
 		if strings.HasPrefix(hash, target) {
 			b.Hash = hash
 			break

@@ -14,20 +14,20 @@ func HandleErr(err error) {
 	}
 }
 
-func Hash(data interface{}) string {
-	dataAsString := fmt.Sprint(data)
-	hash := fmt.Sprintf("%x",sha256.Sum256([]byte(dataAsString)))	
-	return hash
+func Hash[T any](data T) string {
+	dataAsString := fmt.Sprintf("%v", data)
+	hash := sha256.Sum256([]byte(dataAsString))
+	return fmt.Sprintf("%x",hash)
 }
 
-func ToBytes(i interface{}) []byte {
+func ToBytes[T any](i T) []byte {
 	var aBuffer bytes.Buffer
 	encoder := gob.NewEncoder(&aBuffer)
 	HandleErr(encoder.Encode(i))
 	return aBuffer.Bytes()
 }
 
-func FromBytes(i interface{}, data []byte) {
+func FromBytes[T any](i T, data []byte) {
 	decoder := gob.NewDecoder(bytes.NewReader(data))
 	HandleErr(decoder.Decode(i))
 }

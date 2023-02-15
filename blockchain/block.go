@@ -10,14 +10,14 @@ import (
 	"github.com/zzoopro/zzoocoin/utils"
 )
 
-type Block struct {
-	Data 		string 	`json:"data"`
-	Hash 		string 	`json:"hash"`
-	PrevHash 	string 	`json:"prev_hash,omitempty"`
-	Height 		int 	`json:"height"`
-	Difficulty 	int 	`json:"difficulty"`
-	Nonce 		int 	`json:"nonce"`
-	Timestamp   int     `json:"timestamp"`
+type Block struct {	
+	Hash 			string 	`json:"hash"`
+	PrevHash 		string 	`json:"prev_hash,omitempty"`
+	Height 			int 	`json:"height"`
+	Difficulty 		int 	`json:"difficulty"`
+	Nonce 			int 	`json:"nonce"`
+	Timestamp   	int     `json:"timestamp"`
+	Transactions 	[]*Tx  `json:"transactions"`
 }
 
 var (
@@ -28,14 +28,16 @@ func (b *Block) persist() {
 	db.SaveBlock(b.Hash, utils.ToBytes(b))
 }
 
-func createBlock(data string, prevHash string, height int ) *Block {
+func createBlock(prevHash string, height int ) *Block {
 	block := &Block{
-		Data: data,
 		Hash: "",
 		PrevHash: prevHash,
 		Height: height,
 		Difficulty: Blockchain().difficulty(),
 		Nonce: 0,
+		Transactions: []*Tx{
+			makeCoinbaseTx("zzoo"),
+		},
 	}	
 	block.mine()
 	block.persist()

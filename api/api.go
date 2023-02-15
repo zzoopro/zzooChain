@@ -8,7 +8,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/zzoopro/zzoocoin/blockchain"
-	"github.com/zzoopro/zzoocoin/utils"
 )
 
 type urlText string
@@ -27,10 +26,6 @@ type urlDescription struct {
 	Method 		string `json:"method"`
 	Payload 	string `json:"payload,omitempty"`
 	Description string `json:"description"`	
-}
-
-type addBlockBody struct {
-	Data string
 }
 
 var port int
@@ -72,9 +67,7 @@ func handleBlocks(rw http.ResponseWriter, r *http.Request) {
 	case "GET":		
 		json.NewEncoder(rw).Encode(blockchain.Blockchain().Blocks())
 	case "POST":
-		var body addBlockBody
-		utils.HandleErr(json.NewDecoder(r.Body).Decode(&body))
-		blockchain.Blockchain().AddBlock(body.Data)
+		blockchain.Blockchain().AddBlock()
 		rw.WriteHeader(http.StatusCreated)
 	}
 }

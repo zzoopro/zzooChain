@@ -1,8 +1,6 @@
 package db
 
 import (
-	"fmt"
-
 	"github.com/boltdb/bolt"
 	"github.com/zzoopro/zzoocoin/utils"
 )
@@ -35,7 +33,7 @@ func Close() {
 }
 
 func SaveBlock(hash string, data []byte) {
-	fmt.Printf("Saving block: %s\n data: %b", hash, data)
+	// fmt.Printf("Saving block: %s\n data: %b", hash, data)
 	err := DB().Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BLOCKS_BUCKET))
 		err := bucket.Put([]byte(hash), data)

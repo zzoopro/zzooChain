@@ -8,9 +8,9 @@ import (
 )
 
 type blockchain struct {	
-	NewestHash string `json:"newestHash"`
-	Height int `json:"height"`
-	CurrentDifficulty int `json:"currentDifficulty"`
+	NewestHash 			string `json:"newestHash"`
+	Height 				int `json:"height"`
+	CurrentDifficulty 	int `json:"currentDifficulty"`
 }
 
 var (
@@ -26,7 +26,7 @@ const (
 )
 
 func Blockchain() *blockchain {
-	if b == nil {
+	if b == nil { 
 		once.Do(func() {
 			b = &blockchain{				
 				Height: 0,

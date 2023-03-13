@@ -86,6 +86,37 @@ func (b *blockchain) Blocks() []*Block {
 	return blocks
 }
 
+func (b *blockchain) allTxOutPuts() []*TxOutput {
+	blocks := b.Blocks()
+	var txOutputs []*TxOutput 
+	for _, block := range blocks {
+		for _, tx := range block.Transactions {
+			 txOutputs = append(txOutputs, tx.TxOutputs...)
+		}
+	}
+	return txOutputs
+}
+
+func (b *blockchain) TxOutputsByAddress(address string) []*TxOutput {
+	allTxOutPuts := b.allTxOutPuts()
+	var txOutsByAddress []*TxOutput
+	for _, txOutPut := range allTxOutPuts {
+		if txOutPut.Owner == address {
+			txOutsByAddress = append(txOutsByAddress, txOutPut)
+		}		
+	}
+	return txOutsByAddress
+}
+
+func (b *blockchain) BalanceByAddress(address string) int {
+	txOutsByAddress := b.TxOutputsByAddress(address)
+	var total int
+	for _, txOut := range txOutsByAddress {
+		total += txOut.Amount
+	}
+	return total
+}
+
 func (b *blockchain) AddBlock() {
 	block := createBlock(b.NewestHash, b.Height + 1)
 	b.NewestHash = block.Hash

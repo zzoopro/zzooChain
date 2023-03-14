@@ -25,22 +25,41 @@ type Tx struct {
 }
 
 type TxInput struct {
-	Owner string
-	Amount int
+	TxID 	string	`json:"txId"`
+	Index	int		`json:"index"`
+	Owner 	string	`json:"owner"`
 }
 
 type TxOutput struct {
-	Owner string
-	Amount int
+	Owner string	`json:"owner"`
+	Amount int		`json:"amount"`
+}
+
+type UTxOut struct {
+	TxID 	string	`json:"txId"`
+	Index	int		`json:"index"`
+	Amount 	int	`json:"amount"`
 }
 
 func (t *Tx) getId() {
 	t.Id = utils.Hash(t)
 }
 
+func IsOnMempool(uTxOut *UTxOut) bool {
+	exists := false
+	for _, tx := range Mempool.Txs {
+		for _, input := range tx.TxInputs {
+			if input.TxID == uTxOut.TxID && input.Index == uTxOut.Index {
+				exists = true
+			}
+		}
+	}
+	return exists
+}
+
 func makeCoinbaseTx(address string) *Tx {
 	inputs := []*TxInput{
-		{"COINBASE", minerReward},
+		{"", -1, "COINBASE"},
 	}
 	outputs := []*TxOutput{
 		{address, minerReward},
@@ -62,22 +81,23 @@ func makeTx(from, to string, amount int) (*Tx, error) {
 	var txInputs []*TxInput
 	var txOutputs []*TxOutput
 	total := 0
-	fromTxOutputs := Blockchain().TxOutputsByAddress(from)
-	for _, output := range fromTxOutputs {
+	uTxOutputs := Blockchain().UTxOutputsByAddress(from)
+
+	for _, uTxOut := range uTxOutputs {
 		if total >= amount {
 			break
 		}
-		txInput := &TxInput{output.Owner, output.Amount}
-		txInputs = append(txInputs, txInput)
-		total += txInput.Amount 
+		txInput := TxInput{uTxOut.TxID, uTxOut.Index, from}
+		txInputs = append(txInputs, &txInput)
+		total += uTxOut.Amount
 	}
-	change := total - amount
-	if change != 0 {
+	
+	if change := total - amount; change != 0 {
 		changeTxOutput := &TxOutput{from, change}
-		txOutputs = append(txOutputs, changeTxOutput)
+		txOutputs = append(txOutputs, changeTxOutput)  
 	}
-	txOutput := &TxOutput{to, amount}
-	txOutputs = append(txOutputs, txOutput)
+	TxOutput := &TxOutput{to, amount}
+	txOutputs = append(txOutputs, TxOutput)
 	tx := &Tx{
 		Id: "",
 		Timestamp: int(time.Now().Unix()),

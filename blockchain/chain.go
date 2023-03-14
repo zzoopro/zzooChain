@@ -82,34 +82,38 @@ func (b *blockchain) Blocks() []*Block {
 		} else {
 			break
 		}
-	}
+	} 
 	return blocks
 }
 
-func (b *blockchain) allTxOutPuts() []*TxOutput {
-	blocks := b.Blocks()
-	var txOutputs []*TxOutput 
-	for _, block := range blocks {
+
+func (b *blockchain) UTxOutputsByAddress(address string) []*UTxOut {
+	var uTxOutputs []*UTxOut
+	creatorTxs := make(map[string]bool)
+	for _, block := range b.Blocks() {
 		for _, tx := range block.Transactions {
-			 txOutputs = append(txOutputs, tx.TxOutputs...)
+			for _, input := range tx.TxInputs {
+				if input.Owner == address {
+					creatorTxs[input.TxID] = true
+				}
+			}
+			for index, output := range tx.TxOutputs {
+				if output.Owner == address {
+					if _, ok := creatorTxs[tx.Id]; !ok {
+						uTxOutput := &UTxOut{tx.Id, index, output.Amount}
+						if !IsOnMempool(uTxOutput) {
+							uTxOutputs = append(uTxOutputs, uTxOutput)
+						}						
+					}
+				}				
+			}
 		}
 	}
-	return txOutputs
-}
-
-func (b *blockchain) TxOutputsByAddress(address string) []*TxOutput {
-	allTxOutPuts := b.allTxOutPuts()
-	var txOutsByAddress []*TxOutput
-	for _, txOutPut := range allTxOutPuts {
-		if txOutPut.Owner == address {
-			txOutsByAddress = append(txOutsByAddress, txOutPut)
-		}		
-	}
-	return txOutsByAddress
+	return uTxOutputs
 }
 
 func (b *blockchain) BalanceByAddress(address string) int {
-	txOutsByAddress := b.TxOutputsByAddress(address)
+	txOutsByAddress := b.UTxOutputsByAddress(address)
 	var total int
 	for _, txOut := range txOutsByAddress {
 		total += txOut.Amount

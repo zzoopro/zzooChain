@@ -5,10 +5,11 @@ import (
 	"time"
 
 	"github.com/zzoopro/zzoocoin/utils"
+	"github.com/zzoopro/zzoocoin/wallet"
 )
 
 const (
-	minerReward int = 50
+	minerReward int = 50	
 )
 
 type mempool struct {
@@ -16,6 +17,11 @@ type mempool struct {
 }
 
 var Mempool *mempool = &mempool{}
+
+// errors
+var (
+	ErrNoMoney = errors.New("Not enough money.")
+)
 
 type Tx struct {
 	Id string				`json:"id"`
@@ -25,13 +31,13 @@ type Tx struct {
 }
 
 type TxInput struct {
-	TxID 	string	`json:"txId"`
-	Index	int		`json:"index"`
-	Owner 	string	`json:"owner"`
+	TxID 		string	`json:"txId"`
+	Index		int		`json:"index"`
+	Signature 	string	`json:"signature"`
 }
 
 type TxOutput struct {
-	Owner string	`json:"owner"`
+	Address string	`json:"address"`
 	Amount int		`json:"amount"`
 }
 
@@ -45,12 +51,38 @@ func (t *Tx) getId() {
 	t.Id = utils.Hash(t)
 }
 
-func IsOnMempool(uTxOut *UTxOut) bool {
+func (t *Tx) sign() {
+	for _, txInput := range t.TxInputs {
+		txInput.Signature = wallet.Sign(t.Id, wallet.Wallet())
+	}
+}
+
+func validate(tx *Tx) bool {
+	valid := true
+	for _, txIn := range tx.TxInputs {
+		prevTx := FindTx(Blockchain(), txIn.TxID)
+		if prevTx == nil {
+			valid = false
+			break
+		}
+		address := prevTx.TxOutputs[txIn.Index].Address
+		valid = wallet.Verify(txIn.Signature, tx.Id, address)
+		if !valid {
+			break
+		}
+	}
+	return valid
+}
+
+func IsOnMempool(uTxOut *UTxOut) bool {	
 	exists := false
-	for _, tx := range Mempool.Txs {
+
+	Outer:
+	for _, tx := range Mempool.Txs {		
 		for _, input := range tx.TxInputs {
 			if input.TxID == uTxOut.TxID && input.Index == uTxOut.Index {
 				exists = true
+				break Outer
 			}
 		}
 	}
@@ -70,18 +102,18 @@ func makeCoinbaseTx(address string) *Tx {
 		TxInputs: inputs,
 		TxOutputs: outputs,
 	}
-	tx.getId()
+	tx.getId()	
 	return &tx
 }
 
 func makeTx(from, to string, amount int) (*Tx, error) {
-	if Blockchain().BalanceByAddress(from) < amount {
-		return nil, errors.New("Not enough money.")
+	if BalanceByAddress(Blockchain(), from) < amount {
+		return nil, ErrNoMoney
 	}
 	var txInputs []*TxInput
 	var txOutputs []*TxOutput
 	total := 0
-	uTxOutputs := Blockchain().UTxOutputsByAddress(from)
+	uTxOutputs := UTxOutputsByAddress(Blockchain(), from)
 
 	for _, uTxOut := range uTxOutputs {
 		if total >= amount {
@@ -105,11 +137,16 @@ func makeTx(from, to string, amount int) (*Tx, error) {
 		TxOutputs: txOutputs,
 	}
 	tx.getId()
+	tx.sign()
+	valid := validate(tx)
+	if !valid {
+		return nil, ErrNoMoney
+	}
 	return tx, nil
 }
 
 func (m *mempool) AddTx(to string, amount int) error {
-	tx, err := makeTx("zzoo", to, amount)
+	tx, err := makeTx(wallet.Wallet().Address, to, amount)
 	if err != nil {
 		return err
 	}
@@ -118,7 +155,7 @@ func (m *mempool) AddTx(to string, amount int) error {
 }
 
 func (m *mempool) TxToConfirm() []*Tx {
-	coinbase := makeCoinbaseTx("zzoo")
+	coinbase := makeCoinbaseTx(wallet.Wallet().Address)
 	txs := m.Txs
 	txs = append(txs, coinbase)
 	m.Txs = nil

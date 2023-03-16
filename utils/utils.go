@@ -27,7 +27,7 @@ func ToBytes[T any](i T) []byte {
 	return aBuffer.Bytes()
 }
 
-func FromBytes[T any](i T, data []byte) {
+func FromBytes[T any](target T, data []byte) {
 	decoder := gob.NewDecoder(bytes.NewReader(data))
-	HandleErr(decoder.Decode(i))
+	HandleErr(decoder.Decode(target))
 }

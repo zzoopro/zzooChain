@@ -26,19 +26,17 @@ const (
 )
 
 func Blockchain() *blockchain {
-	if b == nil { 
-		once.Do(func() {
-			b = &blockchain{				
-				Height: 0,
-			}
-			chainData := db.ChainData()
-			if chainData == nil {
-				b.AddBlock()
-			} else {
-				b.restore(chainData)
-			}
-		})
-	}	
+	once.Do(func() {
+		b = &blockchain{				
+			Height: 0,
+		}
+		chainData := db.ChainData()
+		if chainData == nil {
+			b.AddBlock()
+		} else {
+			b.restore(chainData)
+		}
+	})
 	return b
 }
 
@@ -46,31 +44,19 @@ func (b *blockchain) restore(data []byte) {
 	utils.FromBytes(b, data)
 }
 
-func (b *blockchain) difficulty() int {
-	if b.Height == 0 {
-		return defaultDifficulty
-	} else if b.Height % epoch == 0 {
-		return b.calculateDifficulty()
-	} else {
-		return b.CurrentDifficulty
-	}
-}
- 
-func (b *blockchain) calculateDifficulty() int {
-	blocks := b.Blocks()
-	newestBlock := blocks[0]
-	lastCalculatedBlock := blocks[epoch - 1]
-	actualMinute := (newestBlock.Timestamp / 60) - (lastCalculatedBlock.Timestamp / 60)
-	expectedMinute := epoch * blockTime
-	if actualMinute > (expectedMinute + allowedRange) {
-		return b.CurrentDifficulty - 1
-	} else if actualMinute < (expectedMinute - allowedRange) {
-		return b.CurrentDifficulty + 1
-	}  
-	return b.CurrentDifficulty	
+func persistBlockchain(b *blockchain) {
+	db.SaveBlockchain(utils.ToBytes(b))
 }
 
-func (b *blockchain) Blocks() []*Block {
+func (b *blockchain) AddBlock() {
+	block := createBlock(b.NewestHash, b.Height + 1, GetDifficulty(b))
+	b.NewestHash = block.Hash
+	b.Height = block.Height
+	b.CurrentDifficulty = block.Difficulty
+	persistBlockchain(b)
+}
+
+func Blocks(b *blockchain) []*Block {
 	var blocks []*Block
 	hashCursor := b.NewestHash
 	for {
@@ -85,20 +71,46 @@ func (b *blockchain) Blocks() []*Block {
 	} 
 	return blocks
 }
+ 
+func CalculateDifficulty(b *blockchain) int {
+	blocks := Blocks(b)
+	newestBlock := blocks[0]
+	lastCalculatedBlock := blocks[epoch - 1]
+	actualMinute := (newestBlock.Timestamp / 60) - (lastCalculatedBlock.Timestamp / 60)
+	expectedMinute := epoch * blockTime
+	if actualMinute > (expectedMinute + allowedRange) {
+		return b.CurrentDifficulty - 1
+	} else if actualMinute < (expectedMinute - allowedRange) {
+		return b.CurrentDifficulty + 1
+	}  
+	return b.CurrentDifficulty	
+}
 
+func GetDifficulty(b *blockchain) int {
+	if b.Height == 0 {
+		return defaultDifficulty
+	} else if b.Height % epoch == 0 {
+		return CalculateDifficulty(b)
+	} else {
+		return b.CurrentDifficulty
+	}
+}
 
-func (b *blockchain) UTxOutputsByAddress(address string) []*UTxOut {
+func UTxOutputsByAddress(b *blockchain, address string) []*UTxOut {
 	var uTxOutputs []*UTxOut
 	creatorTxs := make(map[string]bool)
-	for _, block := range b.Blocks() {
+	for _, block := range Blocks(b) {
 		for _, tx := range block.Transactions {
 			for _, input := range tx.TxInputs {
-				if input.Owner == address {
+				if input.Signature == "COINBASE" {
+					break
+				}
+				if FindTx(b, input.TxID).TxOutputs[input.Index].Address == address {
 					creatorTxs[input.TxID] = true
 				}
 			}
 			for index, output := range tx.TxOutputs {
-				if output.Owner == address {
+				if output.Address == address {
 					if _, ok := creatorTxs[tx.Id]; !ok {
 						uTxOutput := &UTxOut{tx.Id, index, output.Amount}
 						if !IsOnMempool(uTxOutput) {
@@ -112,8 +124,8 @@ func (b *blockchain) UTxOutputsByAddress(address string) []*UTxOut {
 	return uTxOutputs
 }
 
-func (b *blockchain) BalanceByAddress(address string) int {
-	txOutsByAddress := b.UTxOutputsByAddress(address)
+func BalanceByAddress(b *blockchain, address string) int {
+	txOutsByAddress := UTxOutputsByAddress(b, address)
 	var total int
 	for _, txOut := range txOutsByAddress {
 		total += txOut.Amount
@@ -121,14 +133,19 @@ func (b *blockchain) BalanceByAddress(address string) int {
 	return total
 }
 
-func (b *blockchain) AddBlock() {
-	block := createBlock(b.NewestHash, b.Height + 1)
-	b.NewestHash = block.Hash
-	b.Height = block.Height
-	b.CurrentDifficulty = block.Difficulty
-	b.persist()
+func Txs(b *blockchain) []*Tx {
+	var txs []*Tx
+	for _, block := range Blocks(b) {
+		txs = append(txs, block.Transactions...)
+	}
+	return txs
 }
 
-func (b *blockchain) persist() {
-	db.SaveBlockchain(utils.ToBytes(b))
+func FindTx(b *blockchain, txId string) *Tx {
+	for _, tx := range Txs(b) {
+		if tx.Id == txId {
+			return tx
+		}
+	}
+	return nil
 }

@@ -28,12 +28,12 @@ func (b *Block) persist() {
 	db.SaveBlock(b.Hash, utils.ToBytes(b))
 }
 
-func createBlock(prevHash string, height int ) *Block {
+func createBlock(prevHash string, height int, difficulty int ) *Block {
 	block := &Block{
 		Hash: "",
 		PrevHash: prevHash,
 		Height: height,
-		Difficulty: Blockchain().difficulty(),
+		Difficulty: difficulty,
 		Nonce: 0,
 	}	
 	block.mine()

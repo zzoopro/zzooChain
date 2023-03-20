@@ -27,7 +27,6 @@ func Start() {
 	mode := flag.String("mode", "api", "Choose between 'html' and 'api'")
 	
 	flag.Parse()
-	
 	switch *mode {
 		case "html":
 			explorer.Start(*port)

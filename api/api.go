@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/zzoopro/zzoocoin/blockchain"
+	"github.com/zzoopro/zzoocoin/p2p"
 	"github.com/zzoopro/zzoocoin/utils"
 	"github.com/zzoopro/zzoocoin/wallet"
 )
@@ -42,6 +44,11 @@ type BalanceResponse struct {
 
 type myWalletResponse struct {
 	Address string `json:"address"`
+}
+
+type addPeerPayload struct {
+	Address string 	`json:"address"`
+	Port 	string	`json:"port"`
 }
 
 var port int
@@ -88,8 +95,28 @@ func documentation(rw http.ResponseWriter, r *http.Request) {
 			Method: "GET",
 			Description: "get My wallet.",
 		},
+		{
+			URL: urlText("/ws"),
+			Method: "GET",
+			Description: "upgrade to websocket.",
+		},
 	}	
 	json.NewEncoder(rw).Encode(data)
+}
+
+
+func contentTypeMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		fmt.Println(r.URL)
+		next.ServeHTTP(rw, r)
+	})
+}
+
+func loggerMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		rw.Header().Add("Content-Type", "application/json")
+		next.ServeHTTP(rw, r)
+	})
 }
 
 func handleBlocks(rw http.ResponseWriter, request *http.Request) {
@@ -112,13 +139,6 @@ func handleBlock(rw http.ResponseWriter, request *http.Request) {
 	} else {
 		encoder.Encode(block)
 	}	 
-}
-
-func contentTypeMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		rw.Header().Add("Content-Type", "application/json")
-		next.ServeHTTP(rw, r)
-	})
 }
 
 func handleStatus(rw http.ResponseWriter, request *http.Request) {
@@ -155,16 +175,28 @@ func handleTransaction(rw http.ResponseWriter, request *http.Request) {
 	rw.WriteHeader(http.StatusCreated)
 }
 
-func handleWallet(rw http.ResponseWriter, requse *http.Request) {
+func handleWallet(rw http.ResponseWriter, request *http.Request) {
 	address := wallet.Wallet().Address
 	json.NewEncoder(rw).Encode(myWalletResponse{Address: address})
+}
+
+func handlePeers(rw http.ResponseWriter, request *http.Request) {
+	switch request.Method {
+	case "POST":
+		var payload addPeerPayload
+		json.NewDecoder(request.Body).Decode(&payload)
+		p2p.AddPeer(payload.Address, payload.Port, strconv.Itoa(port)) 
+		rw.WriteHeader(http.StatusOK)
+	case "GET":
+		json.NewEncoder(rw).Encode(p2p.Peers)
+	} 
 }
 
 func Start(portNum int){
 	router := mux.NewRouter()
 	port = portNum	
 
-	router.Use(contentTypeMiddleware)
+	router.Use(contentTypeMiddleware, loggerMiddleware)
 	
 	router.HandleFunc("/", documentation).Methods("GET")
 	router.HandleFunc("/mempool", handleMempool).Methods("GET")
@@ -174,7 +206,9 @@ func Start(portNum int){
 	router.HandleFunc("/balance/{address}", handleBalance).Methods("GET")	
 	router.HandleFunc("/transaction", handleTransaction).Methods("POST")	
 	router.HandleFunc("/wallet", handleWallet).Methods("GET")
+	router.HandleFunc("/ws", p2p.Upgrade).Methods("GET")
+	router.HandleFunc("/peers", handlePeers).Methods("GET","POST")
 
-	fmt.Printf("Server listening on http://localhost%d", port)
+	fmt.Printf("Server listening on http://localhost:%d", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), router))	
 }

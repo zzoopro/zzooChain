@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"log"
+	"strings"
 )
 
 func HandleErr(err error) {
@@ -30,4 +31,12 @@ func ToBytes[T any](i T) []byte {
 func FromBytes[T any](target T, data []byte) {
 	decoder := gob.NewDecoder(bytes.NewReader(data))
 	HandleErr(decoder.Decode(target))
+}
+
+func Splitter(s ,sep string, i int) string {
+	result := strings.Split(s, sep)
+	if len(result) - 1 < i {
+		return ""
+	}
+	return result[i]
 }

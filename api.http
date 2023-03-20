@@ -26,3 +26,13 @@ POST http://localhost:4000/transaction
     "amount": 25
 }
 
+###
+http://localhost:4000/peers
+
+###
+POST http://localhost:4000/peers
+
+{
+    "address": "127.0.0.1",
+    "port": "3000"
+}

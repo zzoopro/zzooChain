@@ -1,21 +1,29 @@
 package db
 
 import (
-	"github.com/boltdb/bolt"
+	"fmt"
+
 	"github.com/zzoopro/zzoocoin/utils"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (
-	DB_NAME = "blockchain.db"
+	DB_NAME = "blockchain"
 	DATA_BUCKET = "data"
 	BLOCKS_BUCKET = "blocks"
 	DATA_BUCKET_KEY = "blockchain_data"
 )
 
 var db *bolt.DB
+
+func getDbName() string {
+	return fmt.Sprintf("%s_%s.db", DB_NAME, utils.GetPort())
+}
+
 func DB() *bolt.DB {
 	if db == nil {
-		dbPointer, err := bolt.Open(DB_NAME, 0600, nil)
+		utils.GetPort()
+		dbPointer, err := bolt.Open(getDbName(), 0600, nil)
 		utils.HandleErr(err)
 		db = dbPointer
 		err = db.Update(func(tx *bolt.Tx) error {
@@ -69,4 +77,13 @@ func Block(hash string) []byte {
 		return nil
 	})
 	return data
+}
+
+func EmptyBlocks() {
+	DB().Update(func(tx *bolt.Tx) error {
+		tx.DeleteBucket([]byte(BLOCKS_BUCKET))
+		_, err := tx.CreateBucket([]byte(BLOCKS_BUCKET))
+		utils.HandleErr(err)
+		return nil
+	})
 }

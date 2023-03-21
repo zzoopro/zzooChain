@@ -24,7 +24,7 @@ var (
 	ErrNotFound = errors.New("Block not found.")	
 )
 
-func (b *Block) persist() {
+func persistBlock(b *Block) {
 	db.SaveBlock(b.Hash, utils.ToBytes(b))
 }
 
@@ -38,7 +38,7 @@ func createBlock(prevHash string, height int, difficulty int ) *Block {
 	}	
 	block.mine()
 	block.Transactions = Mempool.TxToConfirm()
-	block.persist()
+	persistBlock(block)
 	return block
 }
 

@@ -10,5 +10,6 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/nsf/termbox-go v0.0.0-20180819125858-b66b20ab708e // indirect
+	go.etcd.io/bbolt v1.3.7 // indirect
 	golang.org/x/sys v0.4.0 // indirect
 )

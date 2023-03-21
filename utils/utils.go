@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -39,4 +41,15 @@ func Splitter(s ,sep string, i int) string {
 		return ""
 	}
 	return result[i]
+}
+
+func ToJSON[T any](payload T) []byte {
+	json, err := json.Marshal(payload)
+	HandleErr(err)
+	return json
+}
+
+func GetPort() string {
+	port := os.Args[2][6:]
+	return port
 }

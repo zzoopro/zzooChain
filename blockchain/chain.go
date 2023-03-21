@@ -149,3 +149,14 @@ func FindTx(b *blockchain, txId string) *Tx {
 	}
 	return nil
 }
+
+func (b *blockchain) Replace(newBlocks []*Block) {
+	b.CurrentDifficulty = newBlocks[0].Difficulty
+	b.Height = len(newBlocks)
+	b.NewestHash = newBlocks[0].Hash
+	persistBlockchain(b)
+	db.EmptyBlocks()
+	for _, block := range newBlocks {
+		persistBlock(block)
+	}
+}

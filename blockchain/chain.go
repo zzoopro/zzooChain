@@ -1,6 +1,8 @@
 package blockchain
 
 import (
+	"encoding/json"
+	"net/http"
 	"sync"
 
 	"github.com/zzoopro/zzoocoin/db"
@@ -11,6 +13,7 @@ type blockchain struct {
 	NewestHash 			string `json:"newestHash"`
 	Height 				int `json:"height"`
 	CurrentDifficulty 	int `json:"currentDifficulty"`
+	m 					sync.Mutex
 }
 
 var (
@@ -40,6 +43,12 @@ func Blockchain() *blockchain {
 	return b
 }
 
+func Status(b *blockchain, rw http.ResponseWriter) {
+	b.m.Lock()
+	defer b.m.Unlock()
+	utils.HandleErr(json.NewEncoder(rw).Encode(b))
+}
+
 func (b *blockchain) restore(data []byte) {
 	utils.FromBytes(b, data)
 }
@@ -48,15 +57,18 @@ func persistBlockchain(b *blockchain) {
 	db.SaveBlockchain(utils.ToBytes(b))
 }
 
-func (b *blockchain) AddBlock() {
+func (b *blockchain) AddBlock() *Block {
 	block := createBlock(b.NewestHash, b.Height + 1, GetDifficulty(b))
 	b.NewestHash = block.Hash
 	b.Height = block.Height
 	b.CurrentDifficulty = block.Difficulty
 	persistBlockchain(b)
+	return block
 }
 
 func Blocks(b *blockchain) []*Block {
+	b.m.Lock()
+	defer b.m.Unlock()
 	var blocks []*Block
 	hashCursor := b.NewestHash
 	for {
@@ -151,6 +163,8 @@ func FindTx(b *blockchain, txId string) *Tx {
 }
 
 func (b *blockchain) Replace(newBlocks []*Block) {
+	b.m.Lock()
+	defer b.m.Unlock()
 	b.CurrentDifficulty = newBlocks[0].Difficulty
 	b.Height = len(newBlocks)
 	b.NewestHash = newBlocks[0].Hash
@@ -158,5 +172,25 @@ func (b *blockchain) Replace(newBlocks []*Block) {
 	db.EmptyBlocks()
 	for _, block := range newBlocks {
 		persistBlock(block)
+	}
+}
+
+func (b *blockchain) AddPeerBlock(newBlock *Block) {
+	b.m.Lock()
+	m.m.Lock()
+	defer b.m.Unlock()
+	defer m.m.Unlock()
+
+	b.Height = newBlock.Height
+	b.CurrentDifficulty = newBlock.Difficulty
+	b.NewestHash = newBlock.Hash
+
+	persistBlock(newBlock)
+	persistBlockchain(b)
+	
+	for _, tx := range newBlock.Transactions {
+		if _, ok := m.Txs[tx.Id]; ok {
+			delete(m.Txs, tx.Id)
+		}
 	}
 }

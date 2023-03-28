@@ -12,9 +12,11 @@ import (
 	"strings"
 )
 
+var logPanic = log.Panic
+
 func HandleErr(err error) {
 	if err != nil {
-		log.Panic(err)
+		logPanic(err)
 	}
 }
 

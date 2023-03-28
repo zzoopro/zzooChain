@@ -22,9 +22,18 @@ type wallet struct {
 	Address    string
 }
 
-var w *wallet
+type fileLayer interface {
+	hasWalletFile() bool
+}
 
-func hasWalletFile() bool {
+type layer struct{}
+
+var (
+	w *wallet
+	files fileLayer = layer{}
+)
+ 
+func (layer) hasWalletFile() bool {
 	_, err := os.Stat(fileName)
 	return !os.IsNotExist(err)
 }
@@ -99,7 +108,7 @@ func Verify(signature, payload, address string) bool {
 func Wallet() *wallet {
 	if w == nil {
 		w = &wallet{}
-		if hasWalletFile() {
+		if files.hasWalletFile() {
 			w.privateKey = restoreKey()
 		} else {
 			key := createPrivateKey()

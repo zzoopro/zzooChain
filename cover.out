@@ -1,0 +1,11 @@
+mode: set
+github.com/zzoopro/zzoocoin/utils/utils.go:17.27,18.16 1 1
+github.com/zzoopro/zzoocoin/utils/utils.go:18.16,20.3 1 1
+github.com/zzoopro/zzoocoin/utils/utils.go:23.33,27.2 3 1
+github.com/zzoopro/zzoocoin/utils/utils.go:29.33,34.2 4 1
+github.com/zzoopro/zzoocoin/utils/utils.go:37.46,40.2 2 1
+github.com/zzoopro/zzoocoin/utils/utils.go:42.44,44.25 2 1
+github.com/zzoopro/zzoocoin/utils/utils.go:47.2,47.18 1 1
+github.com/zzoopro/zzoocoin/utils/utils.go:44.25,46.3 1 1
+github.com/zzoopro/zzoocoin/utils/utils.go:50.38,54.2 3 1
+github.com/zzoopro/zzoocoin/utils/utils.go:56.23,59.2 2 0

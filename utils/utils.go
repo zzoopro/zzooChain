@@ -1,3 +1,4 @@
+// Contains function to be uesd across the application.
 package utils
 
 import (
@@ -30,6 +31,7 @@ func ToBytes[T any](i T) []byte {
 	return aBuffer.Bytes()
 }
 
+// 바이트에서 변수로 저장
 func FromBytes[T any](target T, data []byte) {
 	decoder := gob.NewDecoder(bytes.NewReader(data))
 	HandleErr(decoder.Decode(target))

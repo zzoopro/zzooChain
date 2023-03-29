@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zzoopro/zzoocoin/db"
 	"github.com/zzoopro/zzoocoin/utils"
 )
 
@@ -20,12 +19,13 @@ type Block struct {
 	Transactions 	[]*Tx  	`json:"transactions"`
 }
 
+
 var (
 	ErrNotFound = errors.New("Block not found.")	
 )
 
 func persistBlock(b *Block) {
-	db.SaveBlock(b.Hash, utils.ToBytes(b))
+	dbStorage.SaveBlock(b.Hash, utils.ToBytes(b))
 }
 
 func createBlock(prevHash string, height int, difficulty int ) *Block {
@@ -35,15 +35,15 @@ func createBlock(prevHash string, height int, difficulty int ) *Block {
 		Height: height,
 		Difficulty: difficulty,
 		Nonce: 0,
-	}	
-	block.mine()
+	}		
 	block.Transactions = Mempool().TxToConfirm()
+	block.mine()
 	persistBlock(block)
 	return block
 }
 
 func FindBlock(hash string) (*Block, error) {
-	blockBytes := db.Block(hash)
+	blockBytes := dbStorage.FindBlock(hash)
 	if blockBytes == nil {
 		return nil, ErrNotFound
 	} 

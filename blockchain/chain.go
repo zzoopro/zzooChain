@@ -16,10 +16,21 @@ type blockchain struct {
 	m 					sync.Mutex
 }
 
+
+type storage interface {
+	FindBlock(hash string) []byte
+	SaveBlock(hash string, data []byte)
+	SaveChain(data []byte)
+	LoadChain() []byte
+	DeleteAllBlocks()
+}
+
 var (
 	b *blockchain
 	once sync.Once
 )
+
+var dbStorage storage = db.DB{}
 
 const (
 	defaultDifficulty int = 2
@@ -33,7 +44,7 @@ func Blockchain() *blockchain {
 		b = &blockchain{				
 			Height: 0,
 		}
-		chainData := db.ChainData()
+		chainData := dbStorage.LoadChain()
 		if chainData == nil {
 			b.AddBlock()
 		} else {
@@ -54,7 +65,7 @@ func (b *blockchain) restore(data []byte) {
 }
 
 func persistBlockchain(b *blockchain) {
-	db.SaveBlockchain(utils.ToBytes(b))
+	dbStorage.SaveChain(utils.ToBytes(b))
 }
 
 func (b *blockchain) AddBlock() *Block {
@@ -70,7 +81,7 @@ func Blocks(b *blockchain) []*Block {
 	b.m.Lock()
 	defer b.m.Unlock()
 	var blocks []*Block
-	hashCursor := b.NewestHash
+	hashCursor := b.NewestHash              
 	for {
 		block, err := FindBlock(hashCursor)
 		utils.HandleErr(err)
@@ -169,7 +180,7 @@ func (b *blockchain) Replace(newBlocks []*Block) {
 	b.Height = len(newBlocks)
 	b.NewestHash = newBlocks[0].Hash
 	persistBlockchain(b)
-	db.EmptyBlocks()
+	dbStorage.DeleteAllBlocks()
 	for _, block := range newBlocks {
 		persistBlock(block)
 	}
